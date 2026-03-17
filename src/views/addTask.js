@@ -3,7 +3,7 @@
 // ============================================================
 
 import { createTask } from '../models.js';
-import { addTask, addSubtask } from '../storage.js';
+import { addTask, addSubtask, deleteTask } from '../storage.js';
 import { breakdownTask } from '../breakdown.js';
 import { showToast } from '../components/notification.js';
 import { navigate } from '../router.js';
@@ -159,6 +159,14 @@ export function renderAddTask() {
 
     } catch (error) {
       console.error("Failed to break down:", error);
+      
+      // Cleanup: delete the task we just created since we failed to generate subtasks
+      try {
+        await deleteTask(task.id);
+      } catch (e) {
+        console.error("Failed to cleanup empty task:", e);
+      }
+      
       btnSubmit.innerHTML = originalBtnText;
       btnSubmit.disabled = false;
       btnSubmit.classList.remove('loading');
