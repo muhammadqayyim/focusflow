@@ -110,7 +110,7 @@ Example JSON output format:
 
   } catch (error) {
     console.error("Gemini API Breakdown failed:", error);
-    // Silent fallback so user isn't completely blocked
-    return fallbackBreakdown(task);
+    // Throw the error so the UI can catch it and display it
+    throw error;
   }
 }

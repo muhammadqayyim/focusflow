@@ -162,7 +162,7 @@ export function renderAddTask() {
       btnSubmit.innerHTML = originalBtnText;
       btnSubmit.disabled = false;
       btnSubmit.classList.remove('loading');
-      showToast('❌ Error Error', 'Failed to break down task. Please check API Key or try again.');
+      showToast('❌ Error Breakdown', error.message || 'Failed to break down task. Please check API Key or try again.');
     }
 
     document.getElementById('btn-go-dashboard').addEventListener('click', () => {
