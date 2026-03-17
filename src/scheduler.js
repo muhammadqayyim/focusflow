@@ -4,7 +4,7 @@
 
 import { getAllTasks, getAllSubtasks, updateTask, addSubtask, getSubtasksByTask, deleteSubtask, getState, setState } from './storage.js';
 import { breakdownTask } from './breakdown.js';
-import { selectTopSubtasks, addDailyVariety } from './priority.js';
+import { getRankedTasks, getNextSubtasksForTask } from './priority.js';
 
 /**
  * Get today's date as ISO string (YYYY-MM-DD)
@@ -109,19 +109,54 @@ async function runDailyReset(today) {
 }
 
 /**
- * Get the current 3 focus subtasks for the user
- * @returns {{ subtasks: object[], tasks: object[] }}
+ * Get the current single focused task and its next 3 subtasks
+ * @returns {{ subtasks: object[], task: object|null }}
  */
 export async function getFocusSubtasks() {
   const tasks = await getAllTasks();
   const activeTasks = tasks.filter(t => t.active);
-  const allSubtasks = await getAllSubtasks();
-  const pendingSubs = allSubtasks.filter(s => s.status !== 'done');
+  
+  if (activeTasks.length === 0) return { subtasks: [], task: null };
 
-  let top3 = selectTopSubtasks(pendingSubs, activeTasks);
-  top3 = addDailyVariety(top3);
+  const rankedTasks = getRankedTasks(activeTasks);
+  
+  // Get or initialize the currently focused task index
+  let focusTaskIndex = await getState('currentFocusTaskIndex') || 0;
+  
+  // If index is out of bounds (e.g. tasks were deleted), reset to 0
+  if (focusTaskIndex >= rankedTasks.length) {
+    focusTaskIndex = 0;
+    await setState('currentFocusTaskIndex', 0);
+  }
 
-  return { subtasks: top3, tasks: activeTasks };
+  const focusTask = rankedTasks[focusTaskIndex];
+  const allSubtasks = await getSubtasksByTask(focusTask.id);
+  const pendingSubs = getNextSubtasksForTask(allSubtasks);
+
+  // If this task has no pending subtasks but is active, it might be in a broken state
+  // Auto-shuffle to the next one
+  if (pendingSubs.length === 0 && rankedTasks.length > 1) {
+    return await shuffleFocusTask();
+  }
+
+  return { subtasks: pendingSubs, task: focusTask };
+}
+
+/**
+ * Shuffle to the next highest priority Task
+ * @returns {{ subtasks: object[], task: object|null }}
+ */
+export async function shuffleFocusTask() {
+  const tasks = await getAllTasks();
+  const activeTasks = tasks.filter(t => t.active);
+  
+  if (activeTasks.length <= 1) return await getFocusSubtasks();
+
+  let currentIndex = await getState('currentFocusTaskIndex') || 0;
+  currentIndex = (currentIndex + 1) % activeTasks.length;
+  await setState('currentFocusTaskIndex', currentIndex);
+  
+  return await getFocusSubtasks();
 }
 
 /**

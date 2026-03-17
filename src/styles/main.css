@@ -204,47 +204,117 @@ h3 {
   gap: 16px;
 }
 
-.focus-card {
+/* ---------- Settings View ---------- */
+.settings-view {
+  padding-bottom: 20px;
+}
+
+.settings-card {
   background: var(--bg-card);
   border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  text-align: center;
+}
+
+.settings-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+}
+
+.settings-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 8px;
+  margin-bottom: 20px;
+}
+
+.settings-card .form-group {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.help-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+.help-text a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.help-text a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Focused Task Header ---------- */
+.focused-task-header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  border-radius: var(--radius-md);
   padding: 20px;
+  margin-bottom: 20px;
+  color: white;
   box-shadow: var(--shadow-md);
+}
+
+.focused-task-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.focus-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.focused-task-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: white;
+}
+
+.focused-task-header .category-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ---------- Focus Subcards ---------- */
+.subtasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.focus-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
   transition: transform var(--transition), box-shadow var(--transition), opacity var(--transition);
   position: relative;
   overflow: hidden;
 }
 
-.focus-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  opacity: 0;
-  transition: opacity var(--transition);
-}
-
-.focus-card:hover::before {
-  opacity: 1;
-}
-
-.focus-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.focus-card-parent {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
+.step-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 6px;
 }
 
 .focus-card-title {
@@ -265,6 +335,7 @@ h3 {
   display: flex;
   gap: 8px;
 }
+
 
 /* ---------- Badges ---------- */
 .category-badge {

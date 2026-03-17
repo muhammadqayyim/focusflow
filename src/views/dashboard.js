@@ -2,7 +2,7 @@
 // dashboard.js — Main view showing 3 active subtasks
 // ============================================================
 
-import { getFocusSubtasks, completeSubtask } from '../scheduler.js';
+import { getFocusSubtasks, shuffleFocusTask, completeSubtask } from '../scheduler.js';
 import { getAllTasks, getSubtask, updateSubtask } from '../storage.js';
 import { showToast } from '../components/notification.js';
 import { navigate } from '../router.js';
@@ -36,7 +36,18 @@ export function renderDashboard() {
   updateGreeting();
   loadFocusTasks();
 
-  document.getElementById('btn-refresh').addEventListener('click', loadFocusTasks);
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-refresh');
+    btn.disabled = true;
+    const icon = btn.querySelector('svg');
+    icon.style.animation = 'spin 1s linear infinite';
+    
+    await shuffleFocusTask();
+    await loadFocusTasks();
+    
+    btn.disabled = false;
+    icon.style.animation = '';
+  });
 
   // Refresh greeting every minute
   refreshInterval = setInterval(updateGreeting, 60000);
@@ -65,11 +76,9 @@ async function loadFocusTasks() {
   const container = document.getElementById('focus-cards');
   if (!container) return;
 
-  const { subtasks, tasks } = await getFocusSubtasks();
-  const taskMap = {};
-  for (const t of tasks) taskMap[t.id] = t;
+  const { subtasks, task } = await getFocusSubtasks();
 
-  if (subtasks.length === 0) {
+  if (!task || subtasks.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📝</div>
@@ -98,21 +107,33 @@ async function loadFocusTasks() {
     new: 'cat-new'
   };
 
-  container.innerHTML = subtasks.map((sub, i) => {
-    const task = taskMap[sub.taskId];
-    const catLabel = task ? categoryLabels[task.category] : '';
-    const catClass = task ? categoryClasses[task.category] : '';
+  const catLabel = categoryLabels[task.category];
+  const catClass = categoryClasses[task.category];
+
+  // Render the single parent task header
+  let html = `
+    <div class="focused-task-header card-enter">
+      <div class="focused-task-meta">
+        <span class="category-badge ${catClass}">${catLabel}</span>
+        <span class="focus-label">Current Focus</span>
+      </div>
+      <h3 class="focused-task-title">${task.title}</h3>
+    </div>
+    <div class="subtasks-container">
+  `;
+
+  // Render its pending subtasks
+  html += subtasks.map((sub, i) => {
     const priorityLabel = sub.priority >= 4 ? 'High' : sub.priority >= 3 ? 'Medium' : 'Low';
     const priorityClass = sub.priority >= 4 ? 'priority-high' : sub.priority >= 3 ? 'priority-med' : 'priority-low';
 
     return `
       <div class="focus-card card-enter" style="animation-delay: ${i * 0.1}s" data-subtask-id="${sub.id}">
         <div class="focus-card-header">
-          <span class="category-badge ${catClass}">${catLabel}</span>
+          <span class="step-badge">Step ${sub.order + 1}</span>
           <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
         </div>
-        <div class="focus-card-parent">${task ? task.title : ''}</div>
-        <div class="focus-card-title">${sub.title}</div>
+        <div class="focus-card-title" style="font-size: 14px; margin-bottom: 10px;">${sub.title}</div>
         <div class="focus-card-footer">
           <div class="time-estimate">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -132,6 +153,9 @@ async function loadFocusTasks() {
       </div>
     `;
   }).join('');
+
+  html += `</div>`;
+  container.innerHTML = html;
 
   // Attach event listeners
   container.querySelectorAll('.btn-start').forEach(btn => {
