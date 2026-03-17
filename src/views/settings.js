@@ -35,9 +35,15 @@ export function renderSettings() {
             </p>
           </div>
           
-          <button type="submit" class="btn btn-primary btn-lg btn-submit">
-            Save Key
-          </button>
+          <div class="settings-actions">
+            <button type="submit" class="btn btn-primary btn-lg btn-submit">
+              Save Key
+            </button>
+            <button type="button" id="btn-test-api" class="btn btn-outline btn-lg">
+              Test Connection
+            </button>
+          </div>
+          <div id="api-test-results" class="test-results" style="display:none;"></div>
         </form>
       </div>
       
@@ -68,6 +74,57 @@ export function renderSettings() {
     
     await setState('geminiApiKey', val);
     showToast('✅ Saved!', 'Your API Key is securely stored.');
+  });
+
+  const testBtn = document.getElementById('btn-test-api');
+  const resultsDiv = document.getElementById('api-test-results');
+
+  testBtn.addEventListener('click', async () => {
+    const key = input.value.trim();
+    if (!key) return showToast('⚠️ Error', 'Please enter an API Key first.');
+
+    testBtn.disabled = true;
+    testBtn.innerHTML = 'Testing...';
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<p class="loading-text">Fetching authorized models...</p>';
+
+    try {
+      // Use v1beta for model listing as it usually shows everything
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+      
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const models = data.models || [];
+      
+      if (models.length === 0) {
+        resultsDiv.innerHTML = '<p class="error-text">No models found for this key.</p>';
+        return;
+      }
+
+      // Find relevant models (flash, pro, etc)
+      const relevant = models.filter(m => m.name.includes('gemini'));
+      
+      resultsDiv.innerHTML = `
+        <p class="success-text">✅ Connection Successful!</p>
+        <p class="results-hint">Found these Gemini models on your key:</p>
+        <ul class="model-list">
+          ${relevant.map(m => `<li><code>${m.name.replace('models/', '')}</code></li>`).join('')}
+        </ul>
+        <p class="results-hint">If "gemini-1.5-flash" isn't listed, please enable it in Google AI Studio.</p>
+      `;
+      showToast('✅ Connected', `Found ${relevant.length} Gemini models!`);
+    } catch (e) {
+      console.error(e);
+      resultsDiv.innerHTML = `<p class="error-text">❌ Connection Failed: ${e.message}</p>`;
+      showToast('❌ Failed', 'API Key check failed');
+    } finally {
+      testBtn.disabled = false;
+      testBtn.innerHTML = 'Test Connection';
+    }
   });
 
   return { cleanup: () => {} };
