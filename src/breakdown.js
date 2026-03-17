@@ -74,24 +74,33 @@ Example JSON output format:
   `.trim();
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json"
+          temperature: 0.1
         }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        errorData = { error: { message: `HTTP ${response.status}: ${response.statusText}` } };
+      }
+      const msg = errorData.error?.message || `API Error: ${response.status}`;
+      throw new Error(msg);
     }
 
     const data = await response.json();
-    const textOutput = data.candidates[0].content.parts[0].text;
+    let textOutput = data.candidates[0].content.parts[0].text;
+    
+    // Clean up potential markdown formatting (```json ... ```)
+    textOutput = textOutput.replace(/```json|```/g, '').trim();
     
     // Parse the JSON array
     let stepsData = JSON.parse(textOutput);
