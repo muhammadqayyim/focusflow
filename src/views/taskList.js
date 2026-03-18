@@ -116,7 +116,10 @@ async function loadTaskList() {
           ${completedTasks.map(t => `
             <div class="task-item task-item-completed">
               <div class="task-item-content">
-                <div class="task-item-title">${t.title}</div>
+                <div class="task-item-title">
+                  <span class="congratulation-symbol">🏆</span>
+                  ${t.title}
+                </div>
                 <div class="task-item-meta">Completed</div>
               </div>
             </div>

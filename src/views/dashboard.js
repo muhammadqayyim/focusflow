@@ -183,11 +183,10 @@ async function loadFocusTasks() {
       const allDone = await completeSubtask(id);
       
       if (allDone) {
-        // TASK FULLY COMPLETE - Go to Task tab
-        showToast('🏆 Mastered!', 'You have completed every step for this task! Switching to Task list...');
+        // TASK FULLY COMPLETE - Celebration!
         setTimeout(() => {
-          navigate('#tasks');
-        }, 500);
+          showFullTaskCompletion(task.title);
+        }, 100);
         return;
       }
 
@@ -223,6 +222,48 @@ async function loadFocusTasks() {
       }
     });
   });
+}
+
+function showFullTaskCompletion(taskTitle) {
+  const overlay = document.createElement('div');
+  overlay.className = 'full-task-completion-overlay';
+  overlay.innerHTML = `
+    <div class="celebration-content">
+      <div class="trophy-bounce">🏆</div>
+      <h2 style="color: var(--primary); margin-bottom: 8px;">Task Mastered!</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 24px;">"${taskTitle}" is officially complete.</p>
+      <div class="celebration-badge" style="background: var(--accent-green-soft); color: #059669; padding: 8px 16px; border-radius: 20px; font-weight: 700; display: inline-block;">
+        +500 Focus XP
+      </div>
+    </div>
+  `;
+
+  // Add some random confetti
+  for (let i = 0; i < 50; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti-piece';
+    confetti.style.left = Math.random() * 100 + 'vw';
+    confetti.style.backgroundColor = ['#6366f1', '#fbbf24', '#059669', '#ec4899', '#8b5cf6'][Math.floor(Math.random() * 5)];
+    confetti.style.animationDelay = Math.random() * 2 + 's';
+    confetti.style.width = (Math.random() * 10 + 5) + 'px';
+    confetti.style.height = (Math.random() * 10 + 5) + 'px';
+    overlay.appendChild(confetti);
+  }
+
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.classList.add('show');
+  }, 10);
+
+  // Auto-navigate after celebration
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    setTimeout(() => {
+      overlay.remove();
+      navigate('#tasks');
+    }, 500);
+  }, 3500);
 }
 
 function showBatchCompletion() {
