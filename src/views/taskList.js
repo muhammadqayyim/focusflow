@@ -84,7 +84,10 @@ async function loadTaskList() {
       html += `
         <div class="task-item card-enter" data-task-id="${task.id}">
           <div class="task-item-content">
-            <div class="task-item-title">${task.title}</div>
+            <div class="task-item-title">
+              ${progress === 100 ? '<span class="congratulation-symbol">🏆</span>' : ''}
+              ${task.title}
+            </div>
             ${metaInfo ? `<div class="task-item-meta">${metaInfo}</div>` : ''}
             <div class="task-item-progress">
               <div class="progress-bar">

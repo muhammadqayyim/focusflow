@@ -1379,11 +1379,13 @@ h3 {
   align-items: center;
   justify-content: center;
   margin-right: 8px;
-  font-size: 18px;
+  font-size: 22px; /* Increased size */
   color: #fbbf24;
+  filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.3));
 }
 
-.task-item-completed .task-item-title {
-  display: flex;
+.task-item-title {
+  display: flex !important;
   align-items: center;
+  gap: 8px;
 }
