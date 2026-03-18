@@ -124,21 +124,23 @@ async function loadFocusTasks() {
 
   // Render its pending subtasks
   html += subtasks.map((sub, i) => {
+    const isDone = sub.status === 'done';
     const priorityLabel = sub.priority >= 4 ? 'High' : sub.priority >= 3 ? 'Medium' : 'Low';
     const priorityClass = sub.priority >= 4 ? 'priority-high' : sub.priority >= 3 ? 'priority-med' : 'priority-low';
 
     return `
-      <div class="focus-card card-enter" style="animation-delay: ${i * 0.1}s" data-subtask-id="${sub.id}">
+      <div class="focus-card card-enter ${isDone ? 'focus-card-done' : ''}" style="animation-delay: ${i * 0.1}s" data-subtask-id="${sub.id}">
         <div class="focus-card-header">
           <span class="step-badge">Step ${sub.order + 1}</span>
-          <span class="priority-badge ${priorityClass}">${priorityLabel}</span>
+          ${isDone ? '<span class="done-badge">✅ Completed</span>' : `<span class="priority-badge ${priorityClass}">${priorityLabel}</span>`}
         </div>
-        <div class="focus-card-title" style="font-size: 14px; margin-bottom: 10px;">${sub.title}</div>
+        <div class="focus-card-title ${isDone ? 'title-strike' : ''}" style="font-size: 14px; margin-bottom: 10px;">${sub.title}</div>
         <div class="focus-card-footer">
           <div class="time-estimate">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             ${sub.estimatedMinutes} min
           </div>
+          ${!isDone ? `
           <div class="focus-card-actions">
             <button class="btn btn-sm btn-start" data-id="${sub.id}" data-minutes="${sub.estimatedMinutes}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -149,6 +151,7 @@ async function loadFocusTasks() {
               Done
             </button>
           </div>
+          ` : ''}
         </div>
       </div>
     `;
@@ -171,19 +174,62 @@ async function loadFocusTasks() {
     btn.addEventListener('click', async (e) => {
       const id = e.currentTarget.dataset.id;
       const card = e.currentTarget.closest('.focus-card');
-      card.classList.add('card-complete');
       
-      setTimeout(async () => {
-        const allDone = await completeSubtask(id);
+      // Update subtask immediately in UI for responsive feel
+      card.classList.add('subtask-done-animation');
+      const doneBtn = card.querySelector('.btn-done');
+      if (doneBtn) doneBtn.disabled = true;
+
+      const allDone = await completeSubtask(id);
+      
+      // Get updated state to check batch completion
+      const { subtasks } = await getFocusSubtasks();
+      const batchFinished = subtasks.length > 0 && subtasks.every(s => s.status === 'done');
+
+      if (batchFinished) {
+        // Delay slightly for the card animation
+        setTimeout(() => {
+          showBatchCompletion();
+        }, 600);
+      } else {
         if (allDone) {
           showToast('🎉 Task Complete!', 'All subtasks for this task are done!');
+          loadFocusTasks(); // Refresh to next task
         } else {
-          showToast('✅ Subtask Done!', 'Great work! Keep going!');
+          // Just update this card's appearance
+          card.classList.add('focus-card-done');
+          const actions = card.querySelector('.focus-card-actions');
+          if (actions) actions.style.display = 'none';
+          showToast('✅ Step Complete!', 'Great work! Finish the set!');
         }
-        loadFocusTasks();
-      }, 500);
+      }
     });
   });
+}
+
+function showBatchCompletion() {
+  const overlay = document.createElement('div');
+  overlay.className = 'batch-completion-overlay';
+  overlay.innerHTML = `
+    <div class="batch-completion-content">
+      <div class="thumbs-up">👍</div>
+      <h3>Batch Complete!</h3>
+      <p>You're crushing it. Loading the next set...</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  setTimeout(() => {
+    overlay.classList.add('show');
+  }, 10);
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    setTimeout(() => {
+      overlay.remove();
+      loadFocusTasks();
+    }, 400);
+  }, 2500);
 }
 
 function startTimer(subtaskId, minutes, title) {

@@ -109,7 +109,7 @@ async function runDailyReset(today) {
 }
 
 /**
- * Get the current single focused task and its next 3 subtasks
+ * Get the current single focused task and its static batch of up to 3 subtasks
  * @returns {{ subtasks: object[], task: object|null }}
  */
 export async function getFocusSubtasks() {
@@ -120,10 +120,8 @@ export async function getFocusSubtasks() {
 
   const rankedTasks = getRankedTasks(activeTasks);
   
-  // Get or initialize the currently focused task index
+  // Get currently focused task
   let focusTaskIndex = await getState('currentFocusTaskIndex') || 0;
-  
-  // If index is out of bounds (e.g. tasks were deleted), reset to 0
   if (focusTaskIndex >= rankedTasks.length) {
     focusTaskIndex = 0;
     await setState('currentFocusTaskIndex', 0);
@@ -131,34 +129,63 @@ export async function getFocusSubtasks() {
 
   const focusTask = rankedTasks[focusTaskIndex];
   const allSubtasks = await getSubtasksByTask(focusTask.id);
-  const pendingSubs = getNextSubtasksForTask(allSubtasks);
 
-  // If this task has no pending subtasks but is active, it might be in a broken state
-  // Auto-shuffle to the next one
-  if (pendingSubs.length === 0 && rankedTasks.length > 1) {
-    return await shuffleFocusTask();
+  // Check if we have a current batch for this task
+  let batchIds = await getState(`focusBatch_${focusTask.id}`);
+  let batchSubs = [];
+
+  if (batchIds && Array.isArray(batchIds)) {
+    // Load the subtasks for these IDs
+    const currentSubs = allSubtasks.filter(s => batchIds.includes(s.id));
+    
+    // Check if ALL are done
+    const allDone = currentSubs.length > 0 && currentSubs.every(s => s.status === 'done');
+    
+    if (!allDone && currentSubs.length > 0) {
+      batchSubs = currentSubs.sort((a, b) => a.order - b.order);
+    }
   }
 
-  return { subtasks: pendingSubs, task: focusTask };
+  // If no valid batch or all are done, pick a new batch
+  if (batchSubs.length === 0) {
+    const pendingSubs = getNextSubtasksForTask(allSubtasks);
+    
+    if (pendingSubs.length === 0 && rankedTasks.length > 1) {
+      // No more subtasks for this task, shuffle to next
+      return await shuffleFocusTask();
+    }
+
+    if (pendingSubs.length > 0) {
+      batchSubs = pendingSubs;
+      await setState(`focusBatch_${focusTask.id}`, batchSubs.map(s => s.id));
+    }
+  }
+
+  return { subtasks: batchSubs, task: focusTask };
 }
 
 /**
- * Shuffle to the next highest priority Task
- * @returns {{ subtasks: object[], task: object|null }}
+ * Reset the batch for a specific task
  */
+export async function clearSubtaskBatch(taskId) {
+  await setState(`focusBatch_${taskId}`, null);
+}
+
 export async function shuffleFocusTask() {
   const tasks = await getAllTasks();
   const activeTasks = tasks.filter(t => t.active);
-  
   if (activeTasks.length <= 1) return await getFocusSubtasks();
 
+  const rankedTasks = getRankedTasks(activeTasks);
   let currentIndex = await getState('currentFocusTaskIndex') || 0;
-  currentIndex = (currentIndex + 1) % activeTasks.length;
-  await setState('currentFocusTaskIndex', currentIndex);
+  currentIndex = (currentIndex + 1) % rankedTasks.length;
   
+  // Clear the batch for the NEW task to ensure it picks up correctly
+  await clearSubtaskBatch(rankedTasks[currentIndex].id);
+  
+  await setState('currentFocusTaskIndex', currentIndex);
   return await getFocusSubtasks();
 }
-
 /**
  * Mark a subtask as done and check if parent task is complete
  */
