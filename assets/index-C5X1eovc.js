@@ -278,7 +278,10 @@ Example JSON output format:
     `;for(const o of c){const l=await S(o.id),u=l.filter(m=>m.status==="done").length,d=l.length,p=d>0?Math.round(u/d*100):0;let f="";o.category==="periodic"&&o.intervalDays?f=`Every ${o.intervalDays} days`:o.completedDates.length>0&&(f=`Done ${o.completedDates.length} time${o.completedDates.length>1?"s":""}`),e+=`
         <div class="task-item card-enter" data-task-id="${o.id}">
           <div class="task-item-content">
-            <div class="task-item-title">${o.title}</div>
+            <div class="task-item-title">
+              ${p===100?'<span class="congratulation-symbol">🏆</span>':""}
+              ${o.title}
+            </div>
             ${f?`<div class="task-item-meta">${f}</div>`:""}
             <div class="task-item-progress">
               <div class="progress-bar">
