@@ -182,28 +182,44 @@ async function loadFocusTasks() {
 
       const allDone = await completeSubtask(id);
       
-      // Get the IDs of the subtasks CURRENTLY being displayed
+      if (allDone) {
+        // TASK FULLY COMPLETE - Go to Task tab
+        showToast('🏆 Mastered!', 'You have completed every step for this task! Switching to Task list...');
+        setTimeout(() => {
+          navigate('#tasks');
+        }, 500);
+        return;
+      }
+
+      // Get the IDs of the subtasks CURRENTLY being displayed to check if the current 3-step set is done
       const currentBatchIds = subtasks.map(s => s.id);
       const { getSubtask } = await import('../storage.js');
       const latestStatuses = await Promise.all(currentBatchIds.map(bid => getSubtask(bid)));
       const batchFinished = latestStatuses.every(s => s && s.status === 'done');
 
       if (batchFinished) {
-        // Delay slightly for the card animation
+        // BATCH (3 steps) FINISHED - Show thumbs up and load next 3
         setTimeout(() => {
           showBatchCompletion();
         }, 600);
       } else {
-        if (allDone) {
-          showToast('🎉 Task Complete!', 'All subtasks for this task are done!');
-          loadFocusTasks(); // Refresh to next task
-        } else {
-          // Just update this card's appearance
-          card.classList.add('focus-card-done');
-          const actions = card.querySelector('.focus-card-actions');
-          if (actions) actions.style.display = 'none';
-          showToast('✅ Step Complete!', 'Great work! Finish the set!');
+        // SINGLE STEP FINISHED - Keep on page, just dim the card
+        card.classList.add('focus-card-done');
+        const actions = card.querySelector('.focus-card-actions');
+        if (actions) actions.style.display = 'none';
+        
+        // Add a "Completed" badge dynamically
+        const header = card.querySelector('.focus-card-header');
+        if (header) {
+          const badge = header.querySelector('.priority-badge');
+          if (badge) badge.outerHTML = '<span class="done-badge">✅ Completed</span>';
         }
+        
+        // Strike the title
+        const title = card.querySelector('.focus-card-title');
+        if (title) title.classList.add('title-strike');
+
+        showToast('✅ Step Complete!', 'Great work! Finish the set!');
       }
     });
   });
