@@ -179,10 +179,6 @@ export async function shuffleFocusTask() {
   const rankedTasks = getRankedTasks(activeTasks);
   let currentIndex = await getState('currentFocusTaskIndex') || 0;
   currentIndex = (currentIndex + 1) % rankedTasks.length;
-  
-  // Clear the batch for the NEW task to ensure it picks up correctly
-  await clearSubtaskBatch(rankedTasks[currentIndex].id);
-  
   await setState('currentFocusTaskIndex', currentIndex);
   return await getFocusSubtasks();
 }
