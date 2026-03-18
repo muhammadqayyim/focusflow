@@ -116,12 +116,15 @@ export function renderAddTask() {
     const task = createTask(title, selectedCategory, interval);
     await addTask(task);
 
-    // Show loading state
+    // Show loading state on button
     const btnSubmit = document.getElementById('btn-submit');
     const originalBtnText = btnSubmit.innerHTML;
-    btnSubmit.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Breaking it down...`;
+    btnSubmit.innerHTML = `<svg class="spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Breaking it down...`;
     btnSubmit.disabled = true;
-    btnSubmit.classList.add('loading');
+
+    // Also show global loading to prevent accidental navigation breaking the UI flow
+    const { showGlobalLoading, hideGlobalLoading } = await import('../components/notification.js');
+    showGlobalLoading('AI Brainstorming...', `Breaking down "${title}" into actionable steps.`);
 
     try {
       // Breakdown - Await the async API call
@@ -131,34 +134,16 @@ export function renderAddTask() {
         await addSubtask(s);
       }
 
-      // Show preview
-      form.style.display = 'none';
-      const preview = document.getElementById('breakdown-preview');
-      preview.style.display = 'block';
-
-      const subtaskList = document.getElementById('subtask-list');
-      subtaskList.innerHTML = subtasks.map((s, i) => `
-        <div class="subtask-preview-card card-enter" style="animation-delay: ${i * 0.15}s">
-          <div class="subtask-preview-num">${i + 1}</div>
-          <div class="subtask-preview-content">
-            <div class="subtask-preview-title">${s.title}</div>
-            <div class="subtask-preview-meta">
-              <span class="time-estimate">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                ${s.estimatedMinutes} min
-              </span>
-              <span class="priority-badge ${s.priority >= 4 ? 'priority-high' : s.priority >= 3 ? 'priority-med' : 'priority-low'}">
-                ${s.priority >= 4 ? 'High' : s.priority >= 3 ? 'Medium' : 'Low'}
-              </span>
-            </div>
-          </div>
-        </div>
-      `).join('');
-
+      hideGlobalLoading();
       showToast('✅ Task Added!', `"${title}" has been broken into ${subtasks.length} subtasks`);
+
+      // Instead of showing a preview that might disappear on tab change,
+      // just navigate to the dashboard where the user can see their new task.
+      navigate('#dashboard');
 
     } catch (error) {
       console.error("Failed to break down:", error);
+      hideGlobalLoading();
       
       // Cleanup: delete the task we just created since we failed to generate subtasks
       try {
@@ -169,13 +154,8 @@ export function renderAddTask() {
       
       btnSubmit.innerHTML = originalBtnText;
       btnSubmit.disabled = false;
-      btnSubmit.classList.remove('loading');
       showToast('❌ Error Breakdown', error.message || 'Failed to break down task. Please check API Key or try again.');
     }
-
-    document.getElementById('btn-go-dashboard').addEventListener('click', () => {
-      navigate('#dashboard');
-    });
   });
 
   return { cleanup: () => {} };

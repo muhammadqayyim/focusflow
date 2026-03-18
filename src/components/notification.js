@@ -52,3 +52,36 @@ export function showToast(title, body, duration = 4000) {
     setTimeout(() => toast.remove(), 400);
   }, duration);
 }
+
+export function showGlobalLoading(title = 'Working...', message = 'Please wait while I process that.') {
+  let overlay = document.getElementById('global-loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'global-loading-overlay';
+    overlay.className = 'global-loading-overlay';
+    document.body.appendChild(overlay);
+  }
+
+  overlay.innerHTML = `
+    <div class="loading-content">
+      <div class="spinner spin-slow" style="width: 50px; height: 50px; border-width: 4px; border-radius: 50%; border: 4px solid var(--border); border-top-color: var(--primary); animation: spin 1s linear infinite; margin: 0 auto;"></div>
+      <h3>${title}</h3>
+      <p>${message}</p>
+    </div>
+  `;
+
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+export function hideGlobalLoading() {
+  const overlay = document.getElementById('global-loading-overlay');
+  if (overlay) {
+    overlay.classList.remove('show');
+    setTimeout(() => {
+      if (!overlay.classList.contains('show')) {
+        // Double check no other process showed it in the meantime
+        overlay.innerHTML = '';
+      }
+    }, 300);
+  }
+}
