@@ -182,9 +182,11 @@ async function loadFocusTasks() {
 
       const allDone = await completeSubtask(id);
       
-      // Get updated state to check batch completion
-      const { subtasks } = await getFocusSubtasks();
-      const batchFinished = subtasks.length > 0 && subtasks.every(s => s.status === 'done');
+      // Get the IDs of the subtasks CURRENTLY being displayed
+      const currentBatchIds = subtasks.map(s => s.id);
+      const { getSubtask } = await import('../storage.js');
+      const latestStatuses = await Promise.all(currentBatchIds.map(bid => getSubtask(bid)));
+      const batchFinished = latestStatuses.every(s => s && s.status === 'done');
 
       if (batchFinished) {
         // Delay slightly for the card animation
